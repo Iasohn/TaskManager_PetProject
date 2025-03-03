@@ -12,8 +12,8 @@ using TaskManagerPet.Data;
 namespace TaskManagerPet.Migrations
 {
     [DbContext(typeof(ProjectContext))]
-    [Migration("20250128105724_UpdateSeedDate")]
-    partial class UpdateSeedDate
+    [Migration("20250207164227_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -191,6 +191,9 @@ namespace TaskManagerPet.Migrations
                     b.Property<string>("TaskStatus")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("TaskTime")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 

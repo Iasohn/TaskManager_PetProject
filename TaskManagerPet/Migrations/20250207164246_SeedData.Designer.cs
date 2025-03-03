@@ -12,8 +12,8 @@ using TaskManagerPet.Data;
 namespace TaskManagerPet.Migrations
 {
     [DbContext(typeof(ProjectContext))]
-    [Migration("20250128105506_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20250207164246_SeedData")]
+    partial class SeedData
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -54,13 +54,13 @@ namespace TaskManagerPet.Migrations
                     b.HasData(
                         new
                         {
-                            Id = "cb5622a3-c87d-49cd-b728-ea31aaf7bf3e",
+                            Id = "1f30e8d1-9a3c-43d4-a672-e94b78fe1f43",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         },
                         new
                         {
-                            Id = "39000246-7ed8-4378-b328-16f5310a286a",
+                            Id = "92f99f7e-20b7-48b0-b3de-cf5c73bb5bb6",
                             Name = "User",
                             NormalizedName = "USER"
                         });
@@ -191,6 +191,9 @@ namespace TaskManagerPet.Migrations
                     b.Property<string>("TaskStatus")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("TaskTime")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 

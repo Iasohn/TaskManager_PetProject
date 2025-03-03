@@ -10,7 +10,7 @@ namespace TaskManagerPet.Repository
 {
     public class TaskRepository : ITaskInterface
     {
-        ProjectContext _context;
+        private readonly ProjectContext _context;
         public TaskRepository(ProjectContext context)
         {
             _context = context;
@@ -22,6 +22,7 @@ namespace TaskManagerPet.Repository
             if (Task == null)
                 return null;
             _context.Task.Remove(Task);
+            await _context.SaveChangesAsync();
             return Task;
         }
 
@@ -37,7 +38,14 @@ namespace TaskManagerPet.Repository
 
         public async Task<Tasks> Post(Tasks model)
         {
-            await _context.Task.AddAsync(model);
+            var task = new Tasks
+            {
+                TaskDescription = model.TaskDescription,
+                TaskName = model.TaskName,
+                TaskStatus = model.TaskStatus,
+                TaskTime = DateTime.UtcNow
+            };
+            await _context.Task.AddAsync(task);
             await _context.SaveChangesAsync();
             return model;
         }
@@ -54,7 +62,7 @@ namespace TaskManagerPet.Repository
             task.TaskDescription = model.TaskDescription;
             task.TaskTime = model.TaskTime;
 
-            _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
             return model;
 

@@ -1,6 +1,6 @@
 @TaskManagerPet_HostAddress = http://localhost:5198
 
-GET {{TaskManagerPet_HostAddress}}/weatherforecast/
+GET {{TaskManagerPet_HostAddress}}/api/Task/GetAll
 Accept: application/json
 
 ###

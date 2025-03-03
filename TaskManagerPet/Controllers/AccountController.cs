@@ -1,7 +1,14 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using System.Security.Claims;
+using TaskManagerPet.Data;
 using TaskManagerPet.DTO;
 using TaskManagerPet.Interfaces;
 using TaskManagerPet.Models;
@@ -16,6 +23,7 @@ public class AccountController : Controller
     private readonly SignInManager<User> _signInManager;
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly ILogger<AccountController> _logger;
+    private readonly ProjectContext _context;
     private readonly IEmailService _emailSender;
     public AccountController(
         UserManager<User> userManager,
@@ -23,8 +31,10 @@ public class AccountController : Controller
         SignInManager<User> signInManager,
         ILogger<AccountController> logger,
         RoleManager<IdentityRole> roleManager,
-        IEmailService emailSender)
+        IEmailService emailSender,
+        ProjectContext context)
     {
+        _context = context;
         _emailSender = emailSender;
         _userManager = userManager;
         _tokenService = tokenService;
@@ -43,7 +53,7 @@ public class AccountController : Controller
 
         try
         {
-            var account = _userManager.FindByEmailAsync(registerDTO.Email).GetAwaiter().GetResult();
+            var account = await _userManager.FindByEmailAsync(registerDTO.Email);
             if(account != null)
             {
                 return BadRequest("Please use another email!");
@@ -55,19 +65,20 @@ public class AccountController : Controller
                 
             };
 
-            var createUserResult = _userManager.CreateAsync(user, registerDTO.Password).GetAwaiter().GetResult();
+            var createUserResult = await _userManager.CreateAsync(user, registerDTO.Password);
 
             if (createUserResult.Succeeded)
             {
-                 _userManager.AddToRoleAsync(user, "User").GetAwaiter().GetResult();
+                 await _userManager.AddToRoleAsync(user, "User");
 
                 var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                _emailSender.SendCode(registerDTO.Email, code);
+                var sending = _emailSender.SendCode(registerDTO.Email, code);
                 Console.WriteLine($"code{code}");
                 return Ok(new NewUserDTO
                 {
-                    Token = _tokenService.CreateToken(user),
+                    Token = _tokenService.CreateToken(user,"User"),
                     Email = registerDTO.Email,
+                    RefreshToken = _tokenService.RefreshToken(),
                     Confirm = "Please confirm your email with code,that you received!"
                 }
                 );
@@ -103,12 +114,12 @@ public class AccountController : Controller
             return BadRequest("Errors in email or code");
 
         // Await the call to FindByEmailAsync
-        var user = _userManager.FindByEmailAsync(email).GetAwaiter().GetResult();
+        var user  = await _userManager.FindByEmailAsync(email);
         
         if (user == null)
             return BadRequest("Errors in email or code");
 
-        var isVerified = _userManager.ConfirmEmailAsync(user, code).GetAwaiter().GetResult();
+        var isVerified = await _userManager.ConfirmEmailAsync(user, code);
 
         if (!isVerified.Succeeded)
         {
@@ -120,7 +131,6 @@ public class AccountController : Controller
 
 
 
-
     [HttpPost("Login")]
     public async Task<IActionResult> LoginPage(LoginDTO login)
     {
@@ -129,25 +139,93 @@ public class AccountController : Controller
             return BadRequest(ModelState);
         }
 
-        var user = _userManager.FindByEmailAsync(login.Email.ToLower()).GetAwaiter().GetResult();
-
+        var user = await _userManager.FindByEmailAsync(login.Email.ToLower());
         if (user == null)
         {
-            return Unauthorized("User not found");
+            return Unauthorized(new { message = "User not found" });
         }
 
-        var result = _signInManager.CheckPasswordSignInAsync(user, login.Password, false).GetAwaiter().GetResult();
-
-        if (!result.Succeeded)
-        {
-            return Unauthorized("Incorrect password or user");
-        }
+        var result = await _signInManager.CheckPasswordSignInAsync(user, login.Password, false);
+       
 
         return Ok(new NewUserDTO
         {
-            
             Email = login.Email,
-            Token = _tokenService.CreateToken(user),
+            Token = _tokenService.CreateToken(user,"User"),
+            RefreshToken = _tokenService.RefreshToken()
         });
     }
+
+    [HttpGet("login-Google")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Login()
+    {
+        if (User.Identity.IsAuthenticated)
+        {
+            // Если пользователь уже аутентифицирован, сразу перенаправляй
+            return Content("Котак"); // или другая страница, если пользователь уже вошел
+        }
+
+
+        var redirectUrl = Url.Action("GoogleResponce", "account");
+        var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
+        return Challenge(properties,GoogleDefaults.AuthenticationScheme);
+    }
+
+    [HttpGet("Google-Response")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GoogleResponse()
+    {
+        // Получаем информацию о пользователе через временные cookies
+        var result = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+        if (!result.Succeeded || result.Principal == null)
+        {
+            return BadRequest("Ошибка аутентификации.");
+        }
+
+        // Получаем данные пользователя
+        var email = result.Principal.FindFirst(ClaimTypes.Email)?.Value;
+        var name = result.Principal.FindFirst(ClaimTypes.Name)?.Value;
+
+        // Проверяем, существует ли пользователь в системе
+        var user = await _userManager.FindByEmailAsync(email);
+
+        if (user == null)
+        {
+            // Если пользователя нет, создаём нового
+            user = new User
+            {
+                UserName = name.Replace(" ", "_"), // Заменяет пробелы на _
+                Email = email
+            };
+
+
+            var createUserResult = await _userManager.CreateAsync(user);
+            if (!createUserResult.Succeeded)
+            {
+                // Логируем все ошибки создания пользователя
+                var errors = string.Join(", ", createUserResult.Errors.Select(e => e.Description));
+                return BadRequest($"Ошибка создания пользователя: {errors}");
+            }
+
+        }
+
+        // Используем ваш сервис для создания JWT
+        var jwt = _tokenService.CreateToken(user, "User");
+
+        // Удаляем временные cookies
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+        // Отправляем JWT в заголовке
+        HttpContext.Response.Headers.Add("Authorization", $"Bearer {jwt}");
+
+        // Возвращаем сообщение об успешной аутентификации
+        return Ok(new { message = "котак", token = jwt });
+    }
+
 }
+
+
+
+

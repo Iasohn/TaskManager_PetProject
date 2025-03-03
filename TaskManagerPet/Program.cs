@@ -1,18 +1,26 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using System.Threading.RateLimiting;
 using TaskManagerPet.Data;
 using TaskManagerPet.Interface;
 using TaskManagerPet.Interfaces;
 using TaskManagerPet.Middleware;
 using TaskManagerPet.Models;
 using TaskManagerPet.Repository;
+using Google.Apis.Auth;
 using TaskManagerPet.Services;
-
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Swashbuckle.AspNetCore.SwaggerGen; // Add this line
+using Swashbuckle.AspNetCore.SwaggerUI; // Add this line
+using Swashbuckle.AspNetCore.Swagger; // Add this line
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,6 +55,19 @@ builder.Services.AddSwaggerGen(option =>
     });
 });
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddTokenBucketLimiter("token", opt =>
+    {
+        opt.TokenLimit = 2; // Макс. 5 токенов
+        opt.TokensPerPeriod = 1; // 1 токен добавляется раз в 2 секунды
+        opt.ReplenishmentPeriod = TimeSpan.FromSeconds(13);
+    });
+});
+
+
+
+
 builder.Services.AddDbContext<ProjectContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("TManagerContext")));
 
@@ -65,43 +86,64 @@ builder.Services.AddIdentity<User, IdentityRole>(options =>
 
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<ITaskInterface, TaskRepository>();
-builder.Services.AddTransient<IEmailService , EmailService>();
+builder.Services.AddTransient<IEmailService, EmailService>();
 
 builder.Services.AddAuthentication(options =>
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme);
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddCookie()
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
     {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["JWT:Issuer"],
-            ValidAudience = builder.Configuration["JWT:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:SigningKey"]))
-        };
-    }
-);
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["JWT:Issuer"],
+        ValidAudience = builder.Configuration["JWT:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:SigningKey"]))
+    };
+})
+.AddGoogle(options =>
+{
+    options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
+    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+});
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminPolicy", policy =>
+        policy.RequireRole("Admin"));
+});
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
+    app.MapOpenApi();
+    app.UseSwagger(); // Change this line
     app.UseSwaggerUI(); // Интерфейс Swagger UI
 }
 app.UseMiddleware<PathLogger>();
 app.UseMiddleware<TimerM>();
 app.UseMiddleware<CatchErrorMiddleware>();
 
- 
+
 
 app.UseHttpsRedirection();
-
-app.UseAuthorization();
+app.UseRateLimiter();
 app.UseAuthentication();
+app.UseAuthorization();
+
 
 
 app.MapControllers();

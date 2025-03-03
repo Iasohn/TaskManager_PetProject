@@ -14,7 +14,7 @@
         {
             try
             {
-                _request(context);
+                await _request(context);
             }
             catch (Exception e) 
             {

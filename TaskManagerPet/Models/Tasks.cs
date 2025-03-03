@@ -10,6 +10,6 @@
 
         public required string TaskStatus { get; set; }
 
-        public DateTime TaskTime;
+        public DateTime TaskTime { get; set; }
     }
 }

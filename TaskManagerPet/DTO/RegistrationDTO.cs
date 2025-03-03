@@ -14,6 +14,7 @@ namespace TaskManagerPet.DTO
         [MaxLength(50)]
         [MinLength(8)]
         [DataType(DataType.Password)]
+        
         public required string Password { get; set; }
     }
 }

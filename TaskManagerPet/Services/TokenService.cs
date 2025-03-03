@@ -1,6 +1,8 @@
 ﻿using Microsoft.IdentityModel.Tokens;
+using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using TaskManagerPet.Models;
 
@@ -18,12 +20,13 @@ namespace TaskManagerPet.Services
             _Key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(conf["JWT:SigningKey"]));
         }
 
-        public string CreateToken(User user)
+        public string CreateToken(User user,string role)
         {
             var claims = new Claim[]
             {
-                new Claim(JwtRegisteredClaimNames.Email, user.Email)
-                
+   
+                new Claim(ClaimTypes.Email, user.Email),           // ✅ Email (по желанию)
+                new Claim(ClaimTypes.Role, role)
             };
 
             var creds = new SigningCredentials(_Key, SecurityAlgorithms.HmacSha256);
@@ -32,7 +35,7 @@ namespace TaskManagerPet.Services
             {
                 Issuer = _conf["JWT:Issuer"],
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddMinutes(30),
+                Expires = DateTime.UtcNow.AddMinutes(150),
                 Audience = _conf["JWT:Audience"],
                 SigningCredentials = creds
             };
@@ -42,6 +45,17 @@ namespace TaskManagerPet.Services
             var Token = tokenHandler.CreateToken(tokenDescriptor);
 
             return tokenHandler.WriteToken(Token);            
+        }
+
+        public string RefreshToken()
+        {
+            var randomNember = new byte[64];
+
+            using (var NumberGenerator = RandomNumberGenerator.Create())
+            {
+                NumberGenerator.GetBytes(randomNember);
+            }
+            return Convert.ToBase64String(randomNember);
         }
 
     }

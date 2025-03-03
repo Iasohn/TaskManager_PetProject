@@ -23,7 +23,7 @@ namespace TaskManagerPet.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Создаем фиксированные Id для ролей
+             
             var adminRoleId = "1f30e8d1-9a3c-43d4-a672-e94b78fe1f43";
             var userRoleId = "92f99f7e-20b7-48b0-b3de-cf5c73bb5bb6";
 

@@ -1,5 +1,7 @@
-﻿ using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using TaskManagerPet.Data;
 using TaskManagerPet.Interfaces;
 using TaskManagerPet.Models;
@@ -24,18 +26,51 @@ namespace TaskManagerPet.Controllers
         [HttpPost("Test")]
         public async Task<IActionResult> Testing()
         {
-            var user = new User { UserName = "testuser" };
-            var result = await _userManager.CreateAsync(user, "Test@123");
+            try
+            {
+                var user = new User { UserName = "testuser" };
+                var result = await _userManager.CreateAsync(user, "Test@123");
 
-            if (result.Succeeded)
-                return Ok("User created successfully.");
+                if (result.Succeeded)
+                    return Ok("User created successfully.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                return BadRequest($"Ty gandon {ex.Message}" );
+            }
 
-            logger.LogError("Error creating user: {Errors}", string.Join(", ", result.Errors.Select(e => e.Description)));
+            
 
 
             return StatusCode(500, "Failed to create user.");
-            
+         
         }
+
+
+        [HttpGet("Check")]
+        [Authorize(Roles = "User")]
+        public IActionResult UserCheck()
+        {
+            var user = HttpContext.User;
+
+            Console.WriteLine("🔹 Логирование клеймов:");
+            foreach (var claim in user.Claims)
+            {
+                Console.WriteLine($"{claim.Type}: {claim.Value}");
+            }
+
+            if (user.Identity is { IsAuthenticated: false })
+            {
+                return Unauthorized("❌ Пользователь не аутентифицирован!");
+            }
+
+            var userRole = user.FindFirst(ClaimTypes.Role)?.Value;
+
+            return Ok($"✅ Роль пользователя: {userRole}");
+        }
+
+
         [HttpPost("TestEmail")]
         public async Task<IActionResult> EMAILask(string Email,string code)
         {

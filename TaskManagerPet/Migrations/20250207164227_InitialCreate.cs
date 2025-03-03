@@ -60,7 +60,8 @@ namespace TaskManagerPet.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     TaskName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     TaskDescription = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    TaskStatus = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    TaskStatus = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    TaskTime = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -178,8 +179,8 @@ namespace TaskManagerPet.Migrations
                 columns: new[] { "Id", "ConcurrencyStamp", "Name", "NormalizedName" },
                 values: new object[,]
                 {
-                    { "39000246-7ed8-4378-b328-16f5310a286a", null, "User", "USER" },
-                    { "cb5622a3-c87d-49cd-b728-ea31aaf7bf3e", null, "Admin", "ADMIN" }
+                    { "1f30e8d1-9a3c-43d4-a672-e94b78fe1f43", null, "Admin", "ADMIN" },
+                    { "92f99f7e-20b7-48b0-b3de-cf5c73bb5bb6", null, "User", "USER" }
                 });
 
             migrationBuilder.CreateIndex(
