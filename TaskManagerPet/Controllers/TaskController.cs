@@ -23,8 +23,6 @@ namespace WebApplication1.Controllers
             _task = taskInterface;
 
         }
-
-        [Authorize]
         
         [HttpGet("GetAll")]
         public async Task<IActionResult> GetAll([FromQuery] QueryObject query)
@@ -61,7 +59,7 @@ namespace WebApplication1.Controllers
             return Ok(Get);
         }
 
-        [Authorize]
+        
         [HttpPost("PostTask")]
         public async Task<IActionResult> Post(Tasks model)
         {
