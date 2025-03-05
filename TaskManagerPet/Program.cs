@@ -18,9 +18,9 @@ using Google.Apis.Auth;
 using TaskManagerPet.Services;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Swashbuckle.AspNetCore.SwaggerGen; // Add this line
-using Swashbuckle.AspNetCore.SwaggerUI; // Add this line
-using Swashbuckle.AspNetCore.Swagger; // Add this line
+using Swashbuckle.AspNetCore.SwaggerGen; 
+using Swashbuckle.AspNetCore.SwaggerUI; 
+using Swashbuckle.AspNetCore.Swagger; 
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -59,8 +59,8 @@ builder.Services.AddRateLimiter(options =>
 {
     options.AddTokenBucketLimiter("token", opt =>
     {
-        opt.TokenLimit = 2; // Макс. 5 токенов
-        opt.TokensPerPeriod = 1; // 1 токен добавляется раз в 2 секунды
+        opt.TokenLimit = 2; 
+        opt.TokensPerPeriod = 1;
         opt.ReplenishmentPeriod = TimeSpan.FromSeconds(13);
     });
 });
@@ -130,8 +130,8 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    app.UseSwagger(); // Change this line
-    app.UseSwaggerUI(); // Интерфейс Swagger UI
+    app.UseSwagger();
+    app.UseSwaggerUI(); 
 }
 app.UseMiddleware<PathLogger>();
 app.UseMiddleware<TimerM>();

@@ -113,7 +113,6 @@ public class AccountController : Controller
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(code))
             return BadRequest("Errors in email or code");
 
-        // Await the call to FindByEmailAsync
         var user  = await _userManager.FindByEmailAsync(email);
         
         if (user == null)
@@ -157,13 +156,11 @@ public class AccountController : Controller
     }
 
     [HttpGet("login-Google")]
-    [AllowAnonymous]
     public async Task<IActionResult> Login()
     {
         if (User.Identity.IsAuthenticated)
         {
-            // Если пользователь уже аутентифицирован, сразу перенаправляй
-            return Content("Котак"); // или другая страница, если пользователь уже вошел
+            return Content("You authenticated"); 
         }
 
 
@@ -176,7 +173,6 @@ public class AccountController : Controller
     [AllowAnonymous]
     public async Task<IActionResult> GoogleResponse()
     {
-        // Получаем информацию о пользователе через временные cookies
         var result = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
         if (!result.Succeeded || result.Principal == null)
@@ -184,19 +180,19 @@ public class AccountController : Controller
             return BadRequest("Ошибка аутентификации.");
         }
 
-        // Получаем данные пользователя
+
         var email = result.Principal.FindFirst(ClaimTypes.Email)?.Value;
         var name = result.Principal.FindFirst(ClaimTypes.Name)?.Value;
 
-        // Проверяем, существует ли пользователь в системе
+        
         var user = await _userManager.FindByEmailAsync(email);
 
         if (user == null)
         {
-            // Если пользователя нет, создаём нового
+            
             user = new User
             {
-                UserName = name.Replace(" ", "_"), // Заменяет пробелы на _
+                UserName = name.Replace(" ", "_"), 
                 Email = email
             };
 
@@ -204,24 +200,20 @@ public class AccountController : Controller
             var createUserResult = await _userManager.CreateAsync(user);
             if (!createUserResult.Succeeded)
             {
-                // Логируем все ошибки создания пользователя
-                var errors = string.Join(", ", createUserResult.Errors.Select(e => e.Description));
-                return BadRequest($"Ошибка создания пользователя: {errors}");
+              
+                
+                return BadRequest($"Ошибка создания пользователя: ");
             }
 
         }
 
-        // Используем ваш сервис для создания JWT
+  
         var jwt = _tokenService.CreateToken(user, "User");
 
-        // Удаляем временные cookies
+  
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
-        // Отправляем JWT в заголовке
-        HttpContext.Response.Headers.Add("Authorization", $"Bearer {jwt}");
-
-        // Возвращаем сообщение об успешной аутентификации
-        return Ok(new { message = "котак", token = jwt });
+        return Ok(new { message = "Succesful", token = jwt });
     }
 
 }

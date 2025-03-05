@@ -25,7 +25,7 @@ namespace TaskManagerPet.Services
             var claims = new Claim[]
             {
    
-                new Claim(ClaimTypes.Email, user.Email),           // ✅ Email (по желанию)
+                new Claim(ClaimTypes.Email, user.Email),           
                 new Claim(ClaimTypes.Role, role)
             };
 

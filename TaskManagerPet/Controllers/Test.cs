@@ -54,7 +54,7 @@ namespace TaskManagerPet.Controllers
         {
             var user = HttpContext.User;
 
-            Console.WriteLine("🔹 Логирование клеймов:");
+            Console.WriteLine(" Логирование клеймов:");
             foreach (var claim in user.Claims)
             {
                 Console.WriteLine($"{claim.Type}: {claim.Value}");
@@ -62,12 +62,12 @@ namespace TaskManagerPet.Controllers
 
             if (user.Identity is { IsAuthenticated: false })
             {
-                return Unauthorized("❌ Пользователь не аутентифицирован!");
+                return Unauthorized(" Пользователь не аутентифицирован!");
             }
 
             var userRole = user.FindFirst(ClaimTypes.Role)?.Value;
 
-            return Ok($"✅ Роль пользователя: {userRole}");
+            return Ok($"Роль пользователя: {userRole}");
         }
 
 
@@ -105,7 +105,7 @@ namespace TaskManagerPet.Controllers
 
             try
             {
-                var isDisposed = _userManager.ToString(); // Провоцируем ошибку, если объект утилизирован
+                var isDisposed = _userManager.ToString(); 
                 return Ok("UserManager is alive.");
             }
             catch (ObjectDisposedException ex)

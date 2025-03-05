@@ -59,7 +59,7 @@ namespace TaskManagerPet.Services
             }
             catch (Exception ex)
             {
-                // Логируем ошибку (если используете ILogger, лучше использовать его)
+                
                 Console.WriteLine($"Error sending email: {ex.Message}");
                 throw;
             }
